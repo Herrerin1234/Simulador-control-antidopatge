@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8" />
+<title>Simulador Control Antidopatge</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #222; color: #eee; padding: 20px; max-width: 600px; margin: auto; }
+  h1 { color: #61dafb; text-align: center; }
+  button { font-size: 16px; padding: 10px 20px; margin: 10px 5px 0 0; border-radius: 6px; border: none; cursor: pointer; background: #61dafb; color: #222; transition: background 0.3s; }
+  button:hover:not(:disabled) { background: #21a1f1; }
+  button:disabled { background: #444; cursor: default; }
+  select, input[type="text"] { font-size: 16px; padding: 8px; margin-top: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #555; background: #333; color: #eee; }
+  #tiraOculta { width: 100%; height: 40px; background: #555; border-radius: 6px; margin-top: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #ccc; font-weight: bold; user-select: none; }
+  #tiraOculta.mostrantColor { color: #222; font-weight: normal; }
+  #resultat, #infoControl, #estatAnimacio { margin-top: 15px; font-size: 18px; white-space: pre-line; }
+  #taulaColors { margin-top: 25px; border-collapse: collapse; width: 100%; }
+  #taulaColors th, #taulaColors td { border: 1px solid #555; padding: 8px; text-align: center; }
+  #taulaColors th { background-color: #333; }
+  .colorBox { width: 30px; height: 30px; display: inline-block; border-radius: 4px; margin-right: 8px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<h1>Simulador Control Antidopatge</h1>
+
+<label for="nomUsuari">Introdueix el teu nom:</label>
+<input type="text" id="nomUsuari" placeholder="El teu nom aquí..." />
+
+<label for="selectorJugador" style="margin-top:15px; display:block;">Selecciona un jugador:</label>
+<select id="selectorJugador">
+  <option disabled selected>Tria un jugador</option>
+</select>
+
+<button id="controlBtn" disabled>⚡ Fer un control antidopatge</button>
+
+<div id="estatAnimacio" style="font-size: 32px; margin-top: 15px; height: 40px;"></div>
+<div id="infoControl"></div>
+
+<div id="tiraOculta" title="Clica aquí per mullar la tira i descobrir el color">Clica aquí per mullar la tira</div>
+
+<div id="decideixResultat" style="display:none; margin-top:20px;">
+  <p>🧐 Basant-te en el color, el control és:</p>
+  <button id="btnPositiu">✅ Positiu</button>
+  <button id="btnNegatiu">❌ Negatiu</button>
+</div>
+
+<div id="seleccioSubstanciaDiv" style="display:none; margin-top:20px;">
+  <label for="seleccioSubstancia">Escull la substància que creus que s’ha detectat:</label>
+  <select id="seleccioSubstancia"></select>
+  <button id="verificaSubstanciaBtn" style="margin-top:10px;">Verifica substància</button>
+</div>
+
+<div id="resultat" style="margin-top:20px; font-weight: bold;"></div>
+
+<table id="taulaColors">
+  <thead>
+    <tr><th>Color</th><th>Substància prohibida</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><div class="colorBox" style="background: green;"></div>Verd</td><td>Meldonium</td></tr>
+    <tr><td><div class="colorBox" style="background: blue;"></div>Blau</td><td>Furosemida</td></tr>
+    <tr><td><div class="colorBox" style="background: purple;"></div>Porpra</td><td>Nandrolona</td></tr>
+    <tr><td><div class="colorBox" style="background: orange;"></div>Taronja</td><td>Testosterona</td></tr>
+    <tr><td><div class="colorBox" style="background: red;"></div>Vermell</td><td>Clenbuterol</td></tr>
+    <tr><td><div class="colorBox" style="background: pink;"></div>Rosa</td><td>Estanozolol</td></tr>
+    <tr><td><div class="colorBox" style="background: yellow;"></div>Groc</td><td>Tractament IV prohibit</td></tr>
+  </tbody>
+</table>
+
+<script>
+  const jugadors = [
+    "Iker Casillas", "Víctor Valdés", "Pepe Reina",
+    "Gerard Piqué", "Carles Puyol", "Carlos Marchena", "Raúl Albiol", "Joan Capdevila", "Sergio Ramos", "Álvaro Arbeloa",
+    "Sergio Busquets", "Xabi Alonso", "Xavi Hernández", "Andrés Iniesta", "Javi Martínez", "Cesc Fàbregas",
+    "Jesús Navas", "David Silva", "Pedro Rodríguez",
+    "Fernando Torres", "David Villa", "Juan Mata", "Fernando Llorente"
+  ];
+
+  const colorsSubstancia = [
+    {color: 'green', nom: 'Meldonium'},
+    {color: 'blue', nom: 'Furosemida'},
+    {color: 'purple', nom: 'Nandrolona'},
+    {color: 'orange', nom: 'Testosterona'},
+    {color: 'red', nom: 'Clenbuterol'},
+    {color: 'pink', nom: 'Estanozolol'},
+    {color: 'yellow', nom: 'Tractament IV prohibit'}
+  ];
+
+  const sancions = [
+    "6 mesos", "8 mesos", "12 mesos", "18 mesos",
+    "2 anys", "4 anys", "suspensió indefinida"
+  ];
+
+  const selectorJugador = document.getElementById('selectorJugador');
+  const controlBtn = document.getElementById('controlBtn');
+  const infoControlDiv = document.getElementById('infoControl');
+  const estatAnimacio = document.getElementById('estatAnimacio');
+  const tiraOculta = document.getElementById('tiraOculta');
+  const decideixResultatDiv = document.getElementById('decideixResultat');
+  const btnPositiu = document.getElementById('btnPositiu');
+  const btnNegatiu = document.getElementById('btnNegatiu');
+  const seleccioSubstanciaDiv = document.getElementById('seleccioSubstanciaDiv');
+  const seleccioSubstancia = document.getElementById('seleccioSubstancia');
+  const verificaSubstanciaBtn = document.getElementById('verificaSubstanciaBtn');
+  const resultatDiv = document.getElementById('resultat');
+  const nomUsuariInput = document.getElementById('nomUsuari');
+
+  let substanciaDetectada = null;
+  let controlFet = false;
+  let colorMostrat = false;
+
+  for (const jugador of jugadors) {
+    const opt = document.createElement('option');
+    opt.value = jugador;
+    opt.textContent = jugador;
+    selectorJugador.appendChild(opt);
+  }
+
+  selectorJugador.onchange = () => {
+    controlBtn.disabled = false;
+    resetEstat();
+  };
+
+  controlBtn.onclick = () => {
+    if (!selectorJugador.value) {
+      alert('Si us plau, selecciona un jugador.');
+      return;
+    }
+    ferControl();
+  };
+
+  tiraOculta.onclick = () => {
+    if (!controlFet) {
+      alert('Primer has de fer el control.');
+      return;
+    }
+    if (colorMostrat) return;
+    mostrarColor();
+  };
+
+  btnPositiu.onclick = () => {
+    if (!colorMostrat) {
+      alert('Mulla la tira abans de decidir.');
+      return;
+    }
+    decidirPositiu();
+  };
+
+  btnNegatiu.onclick = () => {
+    if (!colorMostrat) {
+      alert('Mulla la tira abans de decidir.');
+      return;
+    }
+    decidirNegatiu();
+  };
+
+  verificaSubstanciaBtn.onclick = verificaSubstancia;
+
+  function animacioProcessant(callback) {
+    const frames = ["⏳"];
+    let i = 0;
+    estatAnimacio.textContent = frames[i];
+    const interval = setInterval(() => {
+      estatAnimacio.textContent = frames[i];
+    }, 400);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      estatAnimacio.textContent = '';
+      callback();
+    }, 2400);
+  }
+
+  function ferControl() {
+    resetEstat();
+    controlBtn.disabled = true;
+    animacioProcessant(() => {
+      const index = Math.floor(Math.random() * colorsSubstancia.length);
+      const color = colorsSubstancia[index];
+      substanciaDetectada = color.nom;
+      controlFet = true;
+      colorMostrat = false;
+
+      infoControlDiv.innerHTML = `🧪 Control realitzat al jugador <b>${selectorJugador.value}</b>`;
+      tiraOculta.style.background = '#555';
+      tiraOculta.textContent = 'Clica aquí per mullar la tira';
+      tiraOculta.classList.remove('mostrantColor');
+      decideixResultatDiv.style.display = 'none';
+      seleccioSubstanciaDiv.style.display = 'none';
+      resultatDiv.textContent = '';
+    });
+  }
+
+  function mostrarColor() {
+    const colorObj = colorsSubstancia.find(c => c.nom === substanciaDetectada);
+    tiraOculta.style.background = colorObj.color;
+    tiraOculta.textContent = '';
+    tiraOculta.classList.add('mostrantColor');
+    colorMostrat = true;
+    decideixResultatDiv.style.display = 'block';
+    resultatDiv.textContent = '';
+  }
+
+  function decidirPositiu() {
+    seleccioSubstanciaDiv.style.display = 'block';
+    seleccioSubstancia.innerHTML = '';
+    for (const s of colorsSubstancia) {
+      const opt = document.createElement('option');
+      opt.value = s.nom;
+      opt.textContent = s.nom;
+      seleccioSubstancia.appendChild(opt);
+    }
+    resultatDiv.textContent = 'Selecciona la substància i prem "Verifica substància".';
+  }
+
+  function decidirNegatiu() {
+    seleccioSubstanciaDiv.style.display = 'none';
+    if (substanciaDetectada === null) {
+      alert('No hi ha substància detectada!');
+      return;
+    }
+    resultatDiv.textContent = `❌ Error! La prova era positiva (substància: ${substanciaDetectada}).`;
+    controlBtn.disabled = false;
+  }
+
+  function verificaSubstancia() {
+    const escollida = seleccioSubstancia.value;
+    if (!escollida) {
+      alert('Selecciona una substància.');
+      return;
+    }
+    if (escollida === substanciaDetectada) {
+      const sancio = sancions[Math.floor(Math.random() * sancions.length)];
+      resultatDiv.textContent = `✅ Correcte! Substància detectada: ${escollida}\n🚫 Sanció: ${sancio}`;
+      seleccioSubstanciaDiv.style.display = 'none';
+      controlBtn.disabled = false;
+    } else {
+      resultatDiv.textContent = `❌ Incorrecte. La substància detectada no era ${escollida}. Torna-ho a provar o declara el control negatiu.`;
+    }
+  }
+
+  function resetEstat() {
+    infoControlDiv.textContent = '';
+    resultatDiv.textContent = '';
+    decideixResultatDiv.style.display = 'none';
+    seleccioSubstanciaDiv.style.display = 'none';
+    estatAnimacio.textContent = '';
+    controlFet = false;
+    colorMostrat = false;
+  }
+</script>
+
+</body>
+</html>
